@@ -12,224 +12,188 @@
 /*
 /*************************************************************************************/
 
+/*global require,module*/
 
 var https = require("https");
 var http = require("http");
-var Promise = require('es6-promise').Promise;
 
 var myQ = (function() {
+    var myQImpl = {
+        doorstates: ["Undefined","Open","Closed","Undefined","Opening","Closing"], // 1= Open, 2=Closed, 4=Opening, 5=Closing
 
-	
-	
-	var myQImpl = {
+        appKey : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi",
+        secToken : 'null',
+        options : {},
 
-		doorstates: ["Undefined","Open","Closed","Undefined","Opening","Closing"], // 1= Open, 2=Closed, 4=Opening, 5=Closing
-		
-		appKey : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi",
-		secToken : 'null',
-		options : {},
+        getConnection : function(username, password) {
+            if (this.secToken === 'null') {
+                return this.authenticate(username, password).then(
+                    (respObj) => {
+                        return this.getDeviceList();
+                    });
 
-		getConnection : function(username, password) {
-			that = this;
-			if (this.secToken === 'null') {
-				return this.authenticate(username, password).then(
-						function(respObj) {
-							return that.getDeviceList();
-						});
+            } else {
+                return this.getDeviceList();
+            }
+        },
 
-			} else {
-				return that.getDeviceList();
-			}
-		},
+        getDeviceStatus : function(deviceId) {
+            this.options = {
+                path : '/Device/getDeviceAttribute?appId=<%appId%>&securityToken=<%secToken%>&devId=<%deviceId%>&name=doorstate',
+                method : 'GET'
+            };
 
+            this.options.path = this.options.path.replace("<%deviceId%>", deviceId);
 
+            var p = new Promise(this.invokeService).then((respObj) => {
+                if (respObj.ReturnCode !== '0'){
+                    throw new Error("getDeviceStatus returned"+respObj.ReturnCode);
+                }
+                return respObj;
+            });
 
-		getDeviceStatus : function(deviceId) {
-			this.options = {
-				path : '/Device/getDeviceAttribute?appId=<%appId%>&securityToken=<%secToken%>&devId=<%deviceId%>&name=doorstate',
-				method : 'GET',
-			};
+            return p;
+        },
 
-			this.options.path = this.options.path.replace("<%deviceId%>",
-					deviceId);
+        setDeviceStatus : function(deviceId,newState) {
+            this.options = {
+                path : '/Device/setDeviceAttribute',
+                method : 'PUT'
+            };
 
-			that = this;
-			p = new Promise(this.invokeService).then(function(respObj) {
-				if (respObj.ReturnCode !== '0'){
-					throw new Error("getDeviceStatus returned"+respObj.ReturnCode);	
-				}
-				return respObj;
-			});
+            var body = {};
+            body.DeviceId =deviceId,
+            body.ApplicationId =this.appKey,
+            body.AttributeName ='desireddoorstate',
+            body.AttributeValue =newState,
+            body.securityToken =this.secToken;
 
-			return p;
+            this.options.body = body;
 
-		},
+            var p = new Promise(this.invokeService).then((respObj) => {
+                if (respObj.ReturnCode !== '0'){
+                    throw new Error("setDeviceStatus returned"+respObj.ReturnCode);
+                }
+                return respObj;
+            });
 
+            return p;
+        },
 
+        authenticate : function(username, password) {
+            this.options = {
+                path : '/api/user/validatewithculture?appId=<%appId%>&username=<%username%>&password=<%password%>&culture=en',
+                method : 'GET'
+            };
 
-		setDeviceStatus : function(deviceId,newState) {
-			this.options = {
-				path : '/Device/setDeviceAttribute',
-				method : 'PUT',
-			};
+            this.options.path = this.options.path.replace("<%username%>", username);
+            this.options.path = this.options.path.replace("<%password%>", password);
 
-			var body = {};
-  			body.DeviceId =deviceId,
-   			body.ApplicationId =this.appKey,
-			body.AttributeName ='desireddoorstate',
-      			body.AttributeValue =newState,
-      			body.securityToken =this.secToken					
-			
-			this.options.body = body;
+            var p = new Promise(this.invokeService).then((respObj) => {
+                //console.log(respObj);
+                this.secToken = respObj.SecurityToken;
+            });
 
-			that = this;
-			p = new Promise(this.invokeService).then(function(respObj) {
-				if (respObj.ReturnCode !== '0'){
-					throw new Error("setDeviceStatus returned"+respObj.ReturnCode);	
-				}
-				return respObj;
-			});
+            return p;
+        },
 
-			return p;
+        getDeviceList : function() {
+            this.options = {
+                path : '/api/userdevicedetails?appId=<%appId%>&securityToken=<%secToken%>',
+                method : 'GET'
+            };
 
-		},
+            return new Promise(this.invokeService).then((respObj) => {
+                //console.log(respObj);
+                if (respObj.ReturnCode !== '0'){
+                    throw new Error("getDeviceList returned"+respObj.ReturnCode);
+                }
+                return respObj;
+            });
+        },
 
+        invokeService : function(resolve, reject) {
+            this.options.port = 443;
+            this.options.host = 'myqexternal.myqdevice.com';
+            this.options.headers = {
+                'Content-Type' : 'application/json'
+            };
 
+            this.options.path = this.options.path.replace("<%appId%>", this.appKey);
+            this.options.path = this.options.path.replace("<%secToken%>", this.secToken);
 
-		authenticate : function(username, password) {
-			this.options = {
-				path : '/api/user/validatewithculture?appId=<%appId%>&username=<%username%>&password=<%password%>&culture=en',
-				method : 'GET',
-			};
+            var protocol = this.options.port == 443 ? https : http;
 
-			this.options.path = this.options.path.replace("<%username%>",
-					username);
-			this.options.path = this.options.path.replace("<%password%>",
-					password);
+            var request = protocol.request(this.options, (response) => {
+                var output = '';
+                //console.log(this.options.host + ':' + response.statusCode);
+                response.setEncoding('utf8');
 
-			that = this;
-			p = new Promise(this.invokeService).then(function(respObj) {
-				//console.log(respObj);
-				that.secToken = respObj.SecurityToken;
-			});
+                response.on('data', (chunk) => {
+                    output += chunk;
+                });
 
-			return p;
+                response.on('end', () => {
+                    var obj = JSON.parse(output);
+                    resolve(obj);
+                });
+            });
+            request.on('error', (err) => {
+                console.log("Error" + err);
+                reject(new Error(err));
+            });
 
-		},
+            if (this.options.method === 'PUT'){
+                request.write(JSON.stringify(this.options.body));
+            }
 
+            request.end();
+        }
+    };
 
+    return {
+        //below are the various api methods..all methods return es6-promise objects.
 
-		getDeviceList : function() {
-			this.options = {
-				path : '/api/userdevicedetails?appId=<%appId%>&securityToken=<%secToken%>',
-				method : 'GET',
-			};
+        //Returns devices on your account
+        getDevices : function(username,password) {
+            return myQImpl.getConnection(username, password).then((respObj) => {
+                return myQImpl.getDeviceList();
+            });
+        },
 
-			that = this;
+        //Returns the status of the Garage door opener with the the given deviceId
+        getDoorStatus : function(username, password, deviceId) {
+            return myQImpl.getConnection(username, password).then((respObj) => {
+                return myQImpl.getDeviceStatus(deviceId);
+            }).then((respObj) => {
+                return myQImpl.doorstates[respObj.AttributeValue];
+            });
+        },
 
-			return new Promise(this.invokeService).then(function(respObj) {
-				//console.log(respObj);	
-				if (respObj.ReturnCode !== '0'){
-					throw new Error("getDeviceList returned"+respObj.ReturnCode);	
-				}
-				return respObj;
-			});
+        //Opens the garage door with the given deviceId
+        openDoor : function(username, password, deviceId) {
+            return myQImpl.getConnection(username, password).then((respObj) => {
+                return myQImpl.setDeviceStatus(deviceId,1);
+            }).then((respObj) => {
+                //console.log(respObj);
+                return respObj.ReturnCode;
+            });
+        },
 
-		},
+        //Closes the garage door with the given device id.
+        closeDoor : function(username, password, deviceId) {
+            return myQImpl.getConnection(username, password).then((respObj) => {
+                return myQImpl.setDeviceStatus(deviceId,0);
+            }).then((respObj) => {
+                return respObj.ReturnCode;
+            });
+        },
 
-
-
-		invokeService : function(resolve, reject) {
-
-			that.options.port = 443;
-			that.options.host = 'myqexternal.myqdevice.com';
-			that.options.headers = {
-				'Content-Type' : 'application/json'
-			};
-
-			that.options.path = that.options.path.replace("<%appId%>",
-					that.appKey);
-			that.options.path = that.options.path.replace("<%secToken%>",
-					that.secToken);
-
-			var protocol = that.options.port == 443 ? https : http;
-
-			var request = protocol.request(that.options, function(response) {
-				var output = '';
-				//console.log(that.options.host + ':' + response.statusCode);
-				response.setEncoding('utf8');
-
-				response.on('data', function(chunk) {
-					output += chunk;
-				});
-
-				response.on('end', function() {
-					var obj = JSON.parse(output);
-					resolve(obj);
-				});
-
-			});
-			request.on('error', function(err) {
-				console.log("Error" + err);
-				reject(new Error(err));
-			});
-
-			if (that.options.method === 'PUT'){
-				request.write(JSON.stringify(that.options.body));
-			}
-
-			request.end();
-
-		}
-
-	};
-
-	return {
-
-		//below are the various api methods..all methods return es6-promise objects.
-
-    		//Returns devices on your account 
-		getDevices : function(username,password) {
-			return myQImpl.getConnection(username, password).then(function(respObj){
-				return myQImpl.getDeviceList()
-			});		
-		},
-
-		//Returns the status of the Garage door opener with the the given deviceId
-		getDoorStatus : function(username, password, deviceId) {
-			return myQImpl.getConnection(username, password).then(function(respObj){
-				return myQImpl.getDeviceStatus(deviceId)
-			}).then(function(respObj){
-				return myQImpl.doorstates[respObj.AttributeValue];
-			});
-		},
-
-		//Opens the garage door with the given deviceId
-		openDoor : function(username, password, deviceId) {
-			return myQImpl.getConnection(username, password).then(function(respObj){
-				return myQImpl.setDeviceStatus(deviceId,1);
-			}).then(function(respObj){
-				//console.log(respObj);	
-				return respObj.ReturnCode;
-			});
-		},
-
-		//Closes the garage door with the given device id.
-		closeDoor : function(username, password, deviceId) {
-			return myQImpl.getConnection(username, password).then(function(respObj){
-				return myQImpl.setDeviceStatus(deviceId,0);
-			}).then(function(respObj){
-				return respObj.ReturnCode;
-			});
-		},
-
-		//Elapsed time since the current state of the given device id
-		elapsedTime : function(){
-				return Promise.reject(new Error("Not implemented"));
-		}
-
-	};
-
+        //Elapsed time since the current state of the given device id
+        elapsedTime : function(){
+            return Promise.reject(new Error("Not implemented"));
+        }
+    };
 })();
 
-exports.myQ = myQ;
+module.exports = { myQ: myQ };
