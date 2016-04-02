@@ -1,6 +1,6 @@
 {
   "name": "@jhanssen/myqnode",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "An utility to control Chamberlain's MyQ enabled Garage Door Openers.",
   "main": "myQ.js",
   "engines": {
@@ -23,7 +23,10 @@
   ],
   "author": "Tito Mathews <tito.mathews@gmail.com>",
   "contributors": [
-    {"name": "Jan Erik Hanssen", "email": "jhanssen@gmail.com"}
+    {
+      "name": "Jan Erik Hanssen",
+      "email": "jhanssen@gmail.com"
+    }
   ],
   "license": "MIT",
   "bugs": {
