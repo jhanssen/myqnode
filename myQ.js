@@ -1,13 +1,15 @@
 /*************************************************************************************
 /* NodeJS Module to control Chamberlain's MyQ Garage Door. The 
-/* api methods all return es-6 Promises
+/* api methods all return Promises
 /*
 /* NOTE: To find your deviceId, run the getDevices() method and log
 /*       the respObj. (See included example.js file to see how). In 
 /*       the output that is logged, look for a device with attribute 
 /*       MyQDeviceTypeName: 'GarageDoorOpener' or TypeId: 47. Use 
 /*       the corresponding 'DeviceId' attribute as the deviceId.
-/* 
+/*
+/* 04/02/2016 - Jan Erik Hanssen                - Update to ES6 and support
+/*                                                MyQ light switches
 /* 10/02/2014 - Tito Mathews 			- Initial Coding
 /*
 /*************************************************************************************/
@@ -55,18 +57,17 @@ var myQ = (function() {
             return p;
         },
 
-        setDeviceStatus : function(deviceId,newState) {
+        setDeviceStatus : function(deviceId,attrName,newState) {
             this.options = {
                 path : '/Device/setDeviceAttribute',
                 method : 'PUT'
             };
 
-            var body = {};
-            body.DeviceId =deviceId,
-            body.ApplicationId =this.appKey,
-            body.AttributeName ='desireddoorstate',
-            body.AttributeValue =newState,
-            body.securityToken =this.secToken;
+            var body = { DeviceId: deviceId,
+                         ApplicationId: this.appKey,
+                         AttributeName: attrName,
+                         AttributeValue: newState,
+                         securityToken: this.secToken };
 
             this.options.body = body;
 
@@ -173,7 +174,7 @@ var myQ = (function() {
         //Opens the garage door with the given deviceId
         openDoor : function(username, password, deviceId) {
             return myQImpl.getConnection(username, password).then((respObj) => {
-                return myQImpl.setDeviceStatus(deviceId,1);
+                return myQImpl.setDeviceStatus(deviceId,'desireddoorstate',1);
             }).then((respObj) => {
                 //console.log(respObj);
                 return respObj.ReturnCode;
@@ -183,7 +184,23 @@ var myQ = (function() {
         //Closes the garage door with the given device id.
         closeDoor : function(username, password, deviceId) {
             return myQImpl.getConnection(username, password).then((respObj) => {
-                return myQImpl.setDeviceStatus(deviceId,0);
+                return myQImpl.setDeviceStatus(deviceId,'desireddoorstate',0);
+            }).then((respObj) => {
+                return respObj.ReturnCode;
+            });
+        },
+
+        enableLight : function(username, password, deviceId) {
+            return myQImpl.getConnection(username, password).then((respObj) => {
+                return myQImpl.setDeviceStatus(deviceId,'desiredlightstate',1);
+            }).then((respObj) => {
+                return respObj.ReturnCode;
+            });
+        },
+
+        disableLight : function(username, password, deviceId) {
+            return myQImpl.getConnection(username, password).then((respObj) => {
+                return myQImpl.setDeviceStatus(deviceId,'desiredlightstate',0);
             }).then((respObj) => {
                 return respObj.ReturnCode;
             });
