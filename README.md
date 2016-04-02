@@ -8,22 +8,14 @@ Follow Chamberlain's userguide to install the MyQ Gateway on your network, as we
 to create an account with the myQ portal.
 
 
-Pre-requisites
---------------
-
-	es6-promise
-
-
-
 ## Installation
 
-	npm install myqnode --save
+	npm install @jhanssen/myqnode --save
 
 
 ## Usage
 
 	var myQ = require('myqnode').myQ;
-	var Promise = require('es6-promise').Promise
 
 	myQ.getDevices('<userid>','<password>')
 	   .then(function(respObj){
