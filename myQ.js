@@ -47,7 +47,7 @@ var myQ = (function() {
 
             this.options.path = this.options.path.replace("<%deviceId%>", deviceId);
 
-            var p = new Promise(this.invokeService).then((respObj) => {
+            var p = new Promise(this.invokeService.bind(this)).then((respObj) => {
                 if (respObj.ReturnCode !== '0'){
                     throw new Error("getDeviceStatus returned"+respObj.ReturnCode);
                 }
@@ -71,7 +71,7 @@ var myQ = (function() {
 
             this.options.body = body;
 
-            var p = new Promise(this.invokeService).then((respObj) => {
+            var p = new Promise(this.invokeService.bind(this)).then((respObj) => {
                 if (respObj.ReturnCode !== '0'){
                     throw new Error("setDeviceStatus returned"+respObj.ReturnCode);
                 }
@@ -90,7 +90,7 @@ var myQ = (function() {
             this.options.path = this.options.path.replace("<%username%>", username);
             this.options.path = this.options.path.replace("<%password%>", password);
 
-            var p = new Promise(this.invokeService).then((respObj) => {
+            var p = new Promise(this.invokeService.bind(this)).then((respObj) => {
                 //console.log(respObj);
                 this.secToken = respObj.SecurityToken;
             });
@@ -104,7 +104,7 @@ var myQ = (function() {
                 method : 'GET'
             };
 
-            return new Promise(this.invokeService).then((respObj) => {
+            return new Promise(this.invokeService.bind(this)).then((respObj) => {
                 //console.log(respObj);
                 if (respObj.ReturnCode !== '0'){
                     throw new Error("getDeviceList returned"+respObj.ReturnCode);
