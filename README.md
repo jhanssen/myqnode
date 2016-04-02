@@ -15,7 +15,7 @@ to create an account with the myQ portal.
 
 ## Usage
 
-	var myQ = require('myqnode').myQ;
+	var myQ = require('@jhanssen/myqnode').myQ;
 
 	myQ.getDevices('<userid>','<password>')
 	   .then(function(respObj){
