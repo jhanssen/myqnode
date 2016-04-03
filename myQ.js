@@ -22,6 +22,7 @@ var http = require("http");
 var myQ = (function() {
     var myQImpl = {
         doorstates: ["Undefined","Open","Closed","Undefined","Opening","Closing"], // 1= Open, 2=Closed, 4=Opening, 5=Closing
+        lightstates: [false, true],
 
         appKey : "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi",
         secToken : 'null',
@@ -186,7 +187,7 @@ var myQ = (function() {
             return myQImpl.getConnection(username, password).then((respObj) => {
                 return myQImpl.getDeviceStatus(deviceId,'lightstate');
             }).then((respObj) => {
-                return myQImpl.doorstates[respObj.AttributeValue];
+                return myQImpl.lightstates[respObj.AttributeValue];
             });
         },
 
