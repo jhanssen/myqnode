@@ -39,13 +39,11 @@ var myQ = (function() {
             }
         },
 
-        getDeviceStatus : function(deviceId) {
+        getDeviceStatus : function(deviceId,name) {
             this.options = {
-                path : '/Device/getDeviceAttribute?appId=<%appId%>&securityToken=<%secToken%>&devId=<%deviceId%>&name=doorstate',
+                path : `/Device/getDeviceAttribute?appId=${this.appKey}&securityToken=${this.secToken}&devId=${deviceId}&name=${name}`,
                 method : 'GET'
             };
-
-            this.options.path = this.options.path.replace("<%deviceId%>", deviceId);
 
             var p = new Promise(this.invokeService.bind(this)).then((respObj) => {
                 if (respObj.ReturnCode !== '0'){
@@ -83,12 +81,9 @@ var myQ = (function() {
 
         authenticate : function(username, password) {
             this.options = {
-                path : '/api/user/validatewithculture?appId=<%appId%>&username=<%username%>&password=<%password%>&culture=en',
+                path : `/api/user/validatewithculture?appId=${this.appKey}&username=${username}&password=${password}&culture=en`,
                 method : 'GET'
             };
-
-            this.options.path = this.options.path.replace("<%username%>", username);
-            this.options.path = this.options.path.replace("<%password%>", password);
 
             var p = new Promise(this.invokeService.bind(this)).then((respObj) => {
                 //console.log(respObj);
@@ -100,7 +95,7 @@ var myQ = (function() {
 
         getDeviceList : function() {
             this.options = {
-                path : '/api/userdevicedetails?appId=<%appId%>&securityToken=<%secToken%>',
+                path : `/api/userdevicedetails?appId=${this.appKey}&securityToken=${this.secToken}`,
                 method : 'GET'
             };
 
@@ -119,9 +114,6 @@ var myQ = (function() {
             this.options.headers = {
                 'Content-Type' : 'application/json'
             };
-
-            this.options.path = this.options.path.replace("<%appId%>", this.appKey);
-            this.options.path = this.options.path.replace("<%secToken%>", this.secToken);
 
             var protocol = this.options.port == 443 ? https : http;
 
@@ -165,7 +157,7 @@ var myQ = (function() {
         //Returns the status of the Garage door opener with the the given deviceId
         getDoorStatus : function(username, password, deviceId) {
             return myQImpl.getConnection(username, password).then((respObj) => {
-                return myQImpl.getDeviceStatus(deviceId);
+                return myQImpl.getDeviceStatus(deviceId,'doorstate');
             }).then((respObj) => {
                 return myQImpl.doorstates[respObj.AttributeValue];
             });
@@ -187,6 +179,14 @@ var myQ = (function() {
                 return myQImpl.setDeviceStatus(deviceId,'desireddoorstate',0);
             }).then((respObj) => {
                 return respObj.ReturnCode;
+            });
+        },
+
+        getLightStatus : function(username, password, deviceId) {
+            return myQImpl.getConnection(username, password).then((respObj) => {
+                return myQImpl.getDeviceStatus(deviceId,'lightstate');
+            }).then((respObj) => {
+                return myQImpl.doorstates[respObj.AttributeValue];
             });
         },
 
