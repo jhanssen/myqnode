@@ -128,8 +128,12 @@ var myQ = (function() {
                 });
 
                 response.on('end', () => {
-                    var obj = JSON.parse(output);
-                    resolve(obj);
+                    try {
+                        var obj = JSON.parse(output);
+                        resolve(obj);
+                    } catch (e) {
+                        reject(new Error(e));
+                    }
                 });
             });
             request.on('error', (err) => {
